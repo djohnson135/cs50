@@ -37,6 +37,8 @@ require 'Paddle'
 -- our Ball class, which isn't much different than a Paddle structure-wise
 -- but which will mechanically function very differently
 require 'Ball'
+require 'Com'
+
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
