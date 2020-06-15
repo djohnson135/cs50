@@ -98,8 +98,10 @@ function love.load()
 
     -- initialize player paddles and ball
     player1 = Paddle(10, 30, 5, 20)
-    player2 = Paddle(VIRTUAL_WIDTH - 15, VIRTUAL_HEIGHT - 30, 5, 20)
+    player2 = Paddle(VIRTUAL_WIDTH - 15, VIRTUAL_HEIGHT - 30, 5, 20) 
+    
     ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
+    com = Com(player1, ball)
 
     gameState = 'start'
 end
@@ -117,6 +119,7 @@ end
     since the last frame, which LÖVE2D supplies us.
 ]]
 function love.update(dt)
+    
     if gameState == 'serve' then
         -- before switching to play, initialize ball's velocity based
         -- on player who last scored
@@ -205,14 +208,23 @@ function love.update(dt)
     end
 
     -- player 1 movement
-    if love.keyboard.isDown('w') then
-        player1.dy = -PADDLE_SPEED
-    elseif love.keyboard.isDown('s') then
-        player1.dy = PADDLE_SPEED
-    else
-        player1.dy = 0
-    end
-
+    -- if love.keyboard.isDown('w') then
+    --     player1.dy = -PADDLE_SPEED
+    -- elseif love.keyboard.isDown('s') then
+    --     player1.dy = PADDLE_SPEED
+    -- else
+    --     player1.dy = 0
+    -- end
+    -- if ball.x > VIRTUAL_WIDTH / 2 + 50 then
+    --     if ball.y < VIRTUAL_HEIGHT / 2 then
+    --         player1.dy = -PADDLE_SPEED
+    --     elseif ball.y > VIRTUAL_HEIGHT / 2 then
+    --         player1.dy = PADDLE_SPEED
+    --     else
+    --         player1.dy = 0
+    --     end
+    -- end
+    com:move()
     -- player 2 movement
     if love.keyboard.isDown('up') then
         player2.dy = -PADDLE_SPEED
@@ -228,13 +240,23 @@ function love.update(dt)
         ball:update(dt)
     end
 
-    player1:update(dt)
+    com:update(dt)
+    -- player1:update(dt)
+    -- if ball.x > VIRTUAL_WIDTH / 2 + 50 then
+    --     if player1.dy < 0 then
+    --         dif = ball.y - player1.y + (-player1.h)
+    --         player1.y = math.max(0, player1.y + (dif * 10) * dt)
+    --     else
+    --         dif = ball.y - player1.y + (-player1.h / 2)
+    --         player1.y = math.min(VIRTUAL_HEIGHT - player1.h, player1.y + (dif * 10) * dt)
+    --     end
+    -- end
     player2:update(dt)
 end
 
 --[[
     Keyboard handling, called by LÖVE2D each frame; 
-    passes in the key we pressed so we can access.
+    passes in the key we pressed so we can access. 
 ]]
 function love.keypressed(key)
 
