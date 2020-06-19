@@ -26,12 +26,27 @@ MUSHROOM_BOTTOM = 11
 JUMP_BLOCK = 5
 JUMP_BLOCK_HIT = 9
 
+--flag pole
+POLE_TOP = 8
+POLE_MID = 12
+POLE_BOTTOM = 16
+
+--flag
+FLAG = 13
+
+
+-- #        ~
+-- ##       |
+-- ###      |
+-- ####     |
+-- ##########
+
 -- a speed to multiply delta time to scroll map; smooth value
 local SCROLL_SPEED = 62
 
 -- constructor for our map object
 function Map:init()
-
+    
     self.spritesheet = love.graphics.newImage('graphics/spritesheet.png')
     self.sprites = generateQuads(self.spritesheet, 16, 16)
     self.music = love.audio.newSource('sounds/music.wav', 'static')
@@ -55,7 +70,8 @@ function Map:init()
     -- cache width and height of map in pixels
     self.mapWidthPixels = self.mapWidth * self.tileWidth
     self.mapHeightPixels = self.mapHeight * self.tileHeight
-
+    PYRAMID_HEIGHT = math.random(2,5) --height of pyramid
+    PYRAMID_START = math.random(self.mapWidth-(PYRAMID_HEIGHT + 2)) --when pyramid starts may change cus of index issues
     -- first, fill map with empty tiles
     for y = 1, self.mapHeight do
         for x = 1, self.mapWidth do
@@ -64,13 +80,27 @@ function Map:init()
             self:setTile(x, y, TILE_EMPTY)
         end
     end
-
+    for i = PYRAMID_HEIGHT, 0, -1 do
+        for j = 0, PYRAMID_HEIGHT-i do
+            self:setTile(PYRAMID_START - j,self.mapHeight/2-(1+i),TILE_BRICK)
+        end
+    end
     -- begin generating the terrain using vertical scan lines
     local x = 1
     while x < self.mapWidth do
-        
+        for y = self.mapHeight / 2, self.mapHeight do
+            self:setTile(x, y, TILE_BRICK)
+        end
+        x = x+1
+    end
+
+    x = 1
+    local GAP = false
+    while x < self.mapWidth do --add special tiles
         -- 2% chance to generate a cloud
         -- make sure we're 2 tiles from edge at least
+
+        
         if x < self.mapWidth - 2 then
             if math.random(20) == 1 then
                 
@@ -81,17 +111,27 @@ function Map:init()
                 self:setTile(x + 1, cloudStart, CLOUD_RIGHT)
             end
         end
-
+        if GAP then
+            GAP = false
+            for y = self.mapHeight / 2, self.mapHeight do
+                self:setTile(x, y, TILE_EMPTY)
+            end
+            x = x+1
+            
+        
+        -- add the creation of the pyramid
+        
         -- 5% chance to generate a mushroom
-        if math.random(20) == 1 then
+        --add checks if ~TILE_EMPTY
+        elseif math.random(20) == 1 then
             -- left side of pipe
             self:setTile(x, self.mapHeight / 2 - 2, MUSHROOM_TOP)
             self:setTile(x, self.mapHeight / 2 - 1, MUSHROOM_BOTTOM)
 
             -- creates column of tiles going to bottom of map
-            for y = self.mapHeight / 2, self.mapHeight do
-                self:setTile(x, y, TILE_BRICK)
-            end
+            -- for y = self.mapHeight / 2, self.mapHeight do
+            --     self:setTile(x, y, TILE_BRICK)
+            -- end
 
             -- next vertical scan line
             x = x + 1
@@ -102,32 +142,38 @@ function Map:init()
 
             -- place bush component and then column of bricks
             self:setTile(x, bushLevel, BUSH_LEFT)
-            for y = self.mapHeight / 2, self.mapHeight do
-                self:setTile(x, y, TILE_BRICK)
-            end
+            -- for y = self.mapHeight / 2, self.mapHeight do
+            --     self:setTile(x, y, TILE_BRICK)
+            -- end
             x = x + 1
 
             self:setTile(x, bushLevel, BUSH_RIGHT)
-            for y = self.mapHeight / 2, self.mapHeight do
-                self:setTile(x, y, TILE_BRICK)
-            end
+            -- for y = self.mapHeight / 2, self.mapHeight do
+            --     self:setTile(x, y, TILE_BRICK)
+            -- end
             x = x + 1
 
         -- 10% chance to not generate anything, creating a gap
-        elseif math.random(10) ~= 1 then
-            
-            -- creates column of tiles going to bottom of map
+        elseif math.random(10) == 1 then
             for y = self.mapHeight / 2, self.mapHeight do
-                self:setTile(x, y, TILE_BRICK)
-            end
+                    self:setTile(x, y, TILE_EMPTY)
+                end
+            GAP = true;
+            -- creates column of tiles going to bottom of map
+            -- for y = self.mapHeight / 2, self.mapHeight do
+            --     self:setTile(x, y, TILE_BRICK)
+            -- end
 
             -- chance to create a block for Mario to hit
-            if math.random(15) == 1 then
-                self:setTile(x, self.mapHeight / 2 - 4, JUMP_BLOCK)
-            end
+            -- if math.random(15) == 1 then
+            --     self:setTile(x, self.mapHeight / 2 - 4, JUMP_BLOCK)
+            -- end
 
             -- next vertical scan line
             x = x + 1
+        elseif math.random(15) == 1 then
+            self:setTile(x, self.mapHeight / 2 - 4, JUMP_BLOCK)
+            x=x+1
         else
             -- increment X so we skip two scanlines, creating a 2-tile gap
             x = x + 2
