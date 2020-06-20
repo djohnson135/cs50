@@ -46,6 +46,7 @@ function love.load()
 
     love.keyboard.keysPressed = {}
     love.keyboard.keysReleased = {}
+    
 end
 
 -- called whenever window is resized
@@ -105,6 +106,11 @@ function love.draw()
     -- renders our map object onto the screen
     love.graphics.translate(math.floor(-map.camX + 0.5), math.floor(-map.camY + 0.5))
     map:render()
+    
+    if (map.player.LEVELCOMPLETE) then
+        love.graphics.printf('Level Complete!', 0, 100, VIRTUAL_WIDTH+100, 'center')
+    end
+
 
     -- end virtual resolution
     push:apply('end')

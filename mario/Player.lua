@@ -21,6 +21,7 @@ function Player:init(map)
     -- reference to map for checking tiles
     self.map = map
     self.texture = love.graphics.newImage('graphics/blue_alien.png')
+    self.LEVELCOMPLETE = false
 
     -- sound effects
     self.sounds = {
@@ -47,8 +48,11 @@ function Player:init(map)
 
     -- position on top of map tiles
     self.y = map.tileHeight * ((map.mapHeight - 2) / 2) - self.height
-    self.x = map.tileWidth * 10
-
+    self.x = 1 --map.tileWidth * 10
+    -- if self.map:getTile(self.y, self.x) ~= TILE_EMPTY then
+    --     self.x = self.x - 1
+    -- end
+    
     -- initialize all player animations
     self.animations = {
         ['idle'] = Animation({
@@ -178,12 +182,24 @@ function Player:update(dt)
     self.behaviors[self.state](dt)
     self.animation:update(dt)
     self.currentFrame = self.animation:getCurrentFrame()
+    
     self.x = self.x + self.dx * dt
-
+    self:flagcollision()
     self:calculateJumps()
-
+    
     -- apply velocity
     self.y = self.y + self.dy * dt
+end
+--add a fuction for colliding with flag
+function Player:flagcollision()
+    -- if self.dx <= 0 or self.dy < 0 then
+    if self.map:tileAt(self.x, self.y).id == POLE_TOP or self.map:tileAt(self.x, self.y).id == POLE_MID or self.map:tileAt(self.x, self.y).id == POLE_BOTTOM
+    or self.map:tileAt(self.x+self.width - 1, self.y).id == POLE_TOP or self.map:tileAt(self.x+self.width - 1, self.y).id == POLE_MID or 
+    self.map:tileAt(self.x+self.width - 1, self.y).id == POLE_BOTTOM then
+        -- self.sounds['coin']:play()
+        self.LEVELCOMPLETE = true
+    end
+    -- end
 end
 
 -- jumping and block hitting logic
@@ -192,6 +208,7 @@ function Player:calculateJumps()
     -- if we have negative y velocity (jumping), check if we collide
     -- with any blocks above us
     if self.dy < 0 then
+        
         if self.map:tileAt(self.x, self.y).id ~= TILE_EMPTY or
             self.map:tileAt(self.x + self.width - 1, self.y).id ~= TILE_EMPTY then
             -- reset y velocity
@@ -214,7 +231,6 @@ function Player:calculateJumps()
             else
                 playHit = true
             end
-
             if playCoin then
                 self.sounds['coin']:play()
             elseif playHit then

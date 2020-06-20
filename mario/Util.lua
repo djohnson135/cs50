@@ -4,7 +4,7 @@
 
 -- takes a texture, width, and height of tiles and splits it into quads
 -- that can be individually drawn
-function generateQuads(atlas, tilewidth, tileheight)
+function generateQuads(atlas, tilewidth, tileheight) --lua not 0 index it is 1
     local sheetWidth = atlas:getWidth() / tilewidth
     local sheetHeight = atlas:getHeight() / tileheight
 
