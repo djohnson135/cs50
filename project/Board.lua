@@ -1,5 +1,6 @@
 require 'Util'
 require 'Piece'
+
 Board = Class{}
 
 local piece = {
@@ -21,16 +22,21 @@ local gridSize, offsetX, offsetY, squareSize = 480,160,60,60
 local scaleFactor = 0.18
 
 function Board:init()
-    self.spritesheet = love.graphics.newImage('assets/spritesheet.png')
-    self.sprites = generateQuads(self.spritesheet, 333.3, 333.5)
     self.tileWidth = 333.3
     self.tileHeight = 333.5
+    self.spritesheet = love.graphics.newImage('assets/spritesheet.png')
+    self.sprites = generateQuads(self.spritesheet, 333.3, 333.5)
     self.mapWidth = 8
     self.mapHeight = 8
     self.tiles = {}
     self.mapWidthPixels = self.mapWidth * self.tileWidth
     self.mapHeightPixels = self.mapHeight * self.tileHeight
+    self.validmove = false
+    self.selectedX = -1
+    self.selectedY = -1
+    -- draw baord
     self.grid = {}
+
     initialGrid = {
         ["A8"] = piece.BlackRook,
         ["B8"] = piece.BlackKnight,
@@ -77,19 +83,6 @@ function Board:init()
     end
 end
 
-    -- function boardMethods:debugPrint()
-    --     for i, row  in ipairs(self.grid) do
-    --     print(inspect(self.grid[i]))
-    -- end
-
-
-    -- for y = 1, self.mapHeight do
-    --     for x = 1, self.mapWidth do
-            
-    --         -- support for multiple sheets per tile; storing tiles as tables 
-    --         self:setTile(x, y, WKING)
-    --     end
-    -- end
 
 function Board.toXY(algN)
     assert(type(algN) == "string", "toXY expects a string of 2 characters. e.g. A8")
@@ -130,50 +123,6 @@ function Board:placePiece(pie, x, y)
     self.grid[y][x] = pie
 end
 
-function Board:render()
-    for y = 1, self.mapHeight do
-        for x = 1, self.mapWidth do
-            local tile = self:getTile(x, y)
-            if tile ~= TILE_EMPTY then
-                love.graphics.draw(self.spritesheet, self.sprites[tile],
-                    (x - 1) * self.tileWidth, (y - 1) * self.tileHeight)
-            end
-        end
-    end
-end
-
-
-function Board:getTile(x, y)
-    return self.tiles[(y - 1) * self.mapWidth + x]
-end
-
-function Board:setTile(x, y, id)
-    self.tiles[(y - 1) * self.mapWidth + x] = id
-end
-
-function Board:tileAt(x, y)
-    return {
-        x = math.floor(x / self.tileWidth) + 1,
-        y = math.floor(y / self.tileHeight) + 1,
-        id = self:getTile(math.floor(x / self.tileWidth) + 1, math.floor(y / self.tileHeight) + 1)
-    }
-end
-
--- local Board = {__index = boardMethods}
-
--- function Board.new(sheet, windowWidth, windowHeight)
---     local b =  setmetatable({
---         -- spriteSheet = sheet,
---         windowHeight = windowHeight,
---         windowWidth = windowWidth,
---         grid = {}
---                             }, Board)
---     b:init()
---     -- b:calculateBoardSizes()
---     return b
--- end
-
-
 function Board:draw()
     love.graphics.clear()
     love.graphics.setColor(255, 255, 255)
@@ -196,10 +145,10 @@ function Board:draw()
         for x = offsetX, offsetX+gridSize-squareSize, squareSize do
 
         if (i % 2 == 0 and j % 2 ~= 0) or (i % 2 ~= 0 and j % 2 == 0) then
-            love.graphics.setColor(255, 255, 255,255)
+            love.graphics.setColor(81/255, 42/255,42/255)
             love.graphics.rectangle('fill', x, y, squareSize, squareSize)
         else
-            love.graphics.setColor(60, 60, 60)
+            love.graphics.setColor(124/255, 76/255, 62/255)
             love.graphics.rectangle('fill', x, y, squareSize, squareSize)
         end
         i = i + 1
@@ -212,6 +161,7 @@ function Board:draw()
         for x = 1,8 do
         if self.grid[y][x] ~= 0 then
             local xP, yP = Board:gridToPixels(x, y)
+            
             love.graphics.setColor(255, 0, 0)   
             love.graphics.print(self.grid[y][x], xP, yP)
             love.graphics.setColor(255, 255, 255)
@@ -232,3 +182,98 @@ function Board:gridToPixels(x,y)
     return xPixel, yPixel
 end
 
+function Board:pixelsToGrid(x,y)
+    if x < offsetX or x > (offsetX + gridSize) or y < offsetY or y > (offsetY + gridSize) then
+        -- outside of grid
+        return 0,0
+    end
+    local xG = math.floor((x - offsetX)/squareSize) + 1
+    local yG = math.floor((y - offsetY)/squareSize) + 1
+    return xG, yG
+end
+function Board:isValidGridPos(x,y)
+    return x > 0 and x < 9 and y > 0 and y < 9
+end
+
+function Board:movePiece(x1,y1, x2,y2)
+    if Board:isValidGridPos(x1,y1) and Board:isValidGridPos(x2,y2) then
+        if self.grid[y1][x1] ~= 0 then
+            -- print("moving piece "..x1..","..y1.." to "..x2..","..y2)
+            self.grid[y2][x2] = self.grid[y1][x1]
+            self.grid[y1][x1] = 0
+        end
+    end
+end
+
+
+function Board:returnPiece(y,x)
+    if Board:isValidGridPos(y,x) then
+        return self.grid[y][x]
+    else
+        return 0
+    end
+    
+end
+
+function Board:check(gridval, xg, yg)
+    
+    if gridval == 1 or gridval == 7 then
+        if (self:king(xg,yg)) then
+            return true
+        end
+    elseif gridval == 2 then
+        if (self:queen(xg,yg)) then
+            return true
+        end
+
+
+    end
+
+end
+
+function Board:returnselectedX()
+    return self.selectedX
+end
+
+function Board:setselectedX(selectx)
+    self.selectedX = selectx
+end
+
+function Board:returnselectedY()
+    return self.selectedY
+end
+
+function Board:setselectedY(selecty)
+    self.selectedY = selecty
+end
+
+function Board:king(xg,yg)
+    if ((self.selectedX+1 == xg or self.selectedX-1 == xg or self.selectedX == xg) and 
+        (self.selectedY+1 == yg or self.selectedY-1 == yg or self.selectedY == yg)) then
+            return true
+        end
+    return false
+end
+
+function Board:queen(xg,yg)
+    if ((self.selectedX-1 == xg and self.selectedY-1 == yg) or (self.selectedX-2 == xg and self.selectedY-2 == yg) or (self.selectedX-3 == xg and self.selectedY-3 == yg)
+or (self.selectedX-4 == xg and self.selectedY-4 == yg) or (self.selectedX-5 == xg and self.selectedY-5 == yg) or (self.selectedX-6 == xg and self.selectedY-6 == yg) or (self.selectedX-7 == xg and self.selectedY-7 == yg)) then
+        return true
+elseif ((self.selectedX+1 == xg and self.selectedY+1 == yg) or (self.selectedX+2 == xg and self.selectedY+2 == yg) or (self.selectedX+3 == xg and self.selectedY+3 == yg)
+or (self.selectedX+4 == xg and self.selectedY+4 == yg) or (self.selectedX+5 == xg and self.selectedY+5 == yg) or (self.selectedX+6 == xg and self.selectedY+6 == yg) or (self.selectedX+7 == xg and self.selectedY+7 == yg)) then
+    return true
+elseif ((self.selectedX-1 == xg and self.selectedY+1 == yg) or (self.selectedX-2 == xg and self.selectedY+2 == yg) or (self.selectedX-3 == xg and self.selectedY+3 == yg)
+or (self.selectedX-4 == xg and self.selectedY+4 == yg) or (self.selectedX-5 == xg and self.selectedY+5 == yg) or (self.selectedX-6 == xg and self.selectedY+6 == yg) or (self.selectedX-7 == xg and self.selectedY+7 == yg)) then
+    return true
+elseif ((self.selectedX+1 == xg and self.selectedY-1 == yg) or (self.selectedX+2 == xg and self.selectedY-2 == yg) or (self.selectedX+3 == xg and self.selectedY-3 == yg)
+or (self.selectedX+4 == xg and self.selectedY-4 == yg) or (self.selectedX+5 == xg and self.selectedY-5 == yg) or (self.selectedX+6 == xg and self.selectedY-6 == yg) or (self.selectedX+7 == xg and self.selectedY-7 == yg)) then
+    return true
+elseif ((self.selectedX == xg and self.selectedY-1 == yg) or (self.selectedX == xg and self.selectedY-2 == yg) or (self.selectedX == xg and self.selectedY == yg)
+or (self.selectedX == xg and self.selectedY-4 == yg) or (self.selectedX == xg and self.selectedY-5 == yg) or (self.selectedX == xg and self.selectedY-6 == yg) or (self.selectedX == xg and self.selectedY-7 == yg)) then
+    return true
+elseif ((self.selectedX == xg and self.selectedY+1 == yg) or (self.selectedX == xg and self.selectedY+2 == yg) or (self.selectedX == xg and self.selectedY+3 == yg)
+or (self.selectedX == xg and self.selectedY+4 == yg) or (self.selectedX == xg and self.selectedY+5 == yg) or (self.selectedX == xg and self.selectedY+6 == yg) or (self.selectedX == xg and self.selectedY+7 == yg)) then
+    return true
+    end
+    return false
+end
